@@ -28,6 +28,20 @@ if (!isset($_SESSION['user_id'])) {
       --blue:#7aa3c8;
       --purple:#a08bc8;
     }
+
+       /* Custom Icon Styles */
+    .icon-svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+    .brand-icon-svg {
+      width: 24px;
+      height: 24px;
+      fill: white;
+    }
+
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#1f2a1f;display:flex;min-height:100vh;}
 
@@ -94,20 +108,70 @@ if (!isset($_SESSION['user_id'])) {
 <body>
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-icon">⭐</div>
+      <div class="brand-icon">
+        <svg class="brand-icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="white"/>
+        </svg>
+      </div>
       <div class="brand-text">
         <div class="brand-title">Mood Tracker</div>
         <div class="brand-sub">Track your wellbeing</div>
       </div>
     </div>
-    <nav class="nav">
-      <a class="nav-item" href="home.php"><span class="nav-icon">🏠</span>Home</a>
-      <a class="nav-item" href="calendar.php"><span class="nav-icon">📅</span>Calendar</a>
-      <a class="nav-item" href="daily-log.php"><span class="nav-icon">📖</span>Daily Log</a>
-      <a class="nav-item" href="calming-tools.php"><span class="nav-icon">✨</span>Calming Tools</a>
-      <a class="nav-item" href="flashcard.php"><span class="nav-icon">💬</span>Flashcards</a>
-      <a class="nav-item active" href="progress.php"><span class="nav-icon">📊</span>Progress</a>
-      <a class="nav-item" href="settings.php"><span class="nav-icon">⚙️</span>Settings</a>
+        <nav class="nav">
+      <a class="nav-item" href="home.php">
+        <span class="nav-icon">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" fill="currentColor"/>
+            <path d="M9 22V12H15V22" fill="white"/>
+          </svg>
+        </span>Home
+      </a>
+      <a class="nav-item" href="calendar.php">
+        <span class="nav-icon">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="4" width="18" height="18" rx="2" fill="currentColor"/>
+            <path d="M16 2V6M8 2V6M3 10H21" stroke="white" stroke-width="2"/>
+          </svg>
+        </span>Calendar
+      </a>
+      <a class="nav-item" href="daily-log.php">
+        <span class="nav-icon">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 19.5C4 20.163 4.26339 20.7989 4.73223 21.2678C5.20107 21.7366 5.83696 22 6.5 22H20V2H6.5C5.83696 2 5.20107 2.26339 4.73223 2.73223C4.26339 3.20107 4 3.83696 4 4.5V19.5Z" fill="currentColor"/>
+            <path d="M8 6H16M8 10H16M8 14H12" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>Daily Log
+      </a>
+      <a class="nav-item" href="calming-tools.php">
+        <span class="nav-icon">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/>
+          </svg>
+        </span>Calming Tools
+      </a>
+      <a class="nav-item" href="flashcard.php">
+        <span class="nav-icon">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" fill="currentColor"/>
+          </svg>
+        </span>Flashcards
+      </a>
+      <a class="nav-item active" href="progress.php">
+        <span class="nav-icon">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 20V10M12 20V4M6 20V14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </span>Progress
+      </a>
+      <a class="nav-item" href="settings.php">
+        <span class="nav-icon">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="3" fill="currentColor"/>
+            <path d="M12 1V4M12 20V23M4.22 4.22L6.34 6.34M17.66 17.66L19.78 19.78M1 12H4M20 12H23M4.22 19.78L6.34 17.66M17.66 6.34L19.78 4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </span>Settings
+      </a>
     </nav>
     <div class="welcome" id="authSection">
       <div id="userInfo" style="display:none;flex-direction:column;gap:10px">

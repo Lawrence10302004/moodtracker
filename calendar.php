@@ -248,18 +248,56 @@ if (!isset($_SESSION['user_id'])) {
         <div class="legend-card card">
           <div class="legend-title">Legend</div>
           <div class="legend-list">
-            <div class="legend-item"><div class="legend-icon">📖</div>Diary Entry</div>
-            <div class="legend-item"><div class="legend-icon">📹</div>Photo/Video</div>
-            <div class="legend-item"><div class="legend-icon">🙂</div>Face Detected</div>
-            <div class="legend-item"><div class="legend-icon">🎙️</div>Audio Detected</div>
-          </div>
+  <div class="legend-item">
+    <div class="legend-icon">
+      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 19.5C4 20.163 4.26339 20.7989 4.73223 21.2678C5.20107 21.7366 5.83696 22 6.5 22H20V2H6.5C5.83696 2 5.20107 2.26339 4.73223 2.73223C4.26339 3.20107 4 3.83696 4 4.5V19.5Z" fill="currentColor"/>
+        <path d="M8 6H16M8 10H16M8 14H12" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <span>Diary Entry</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-icon">
+      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M23 19C23 19.5304 22.7893 20.0391 22.4142 20.4142C22.0391 20.7893 21.5304 21 21 21H3C2.46957 21 1.96086 20.7893 1.58579 20.4142C1.21071 20.0391 1 19.5304 1 19V8C1 7.46957 1.21071 6.96086 1.58579 6.58579C1.96086 6.21071 2.46957 6 3 6H7L9 3H15L17 6H21C21.5304 6 22.0391 6.21071 22.4142 6.58579C22.7893 6.96086 23 7.46957 23 8V19Z" fill="currentColor"/>
+        <circle cx="12" cy="13" r="3" fill="white"/>
+      </svg>
+    </div>
+    <span>Photo/Video</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-icon">
+      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="7" r="4" fill="currentColor"/>
+        <path d="M5.5 21C5.5 17.134 8.41015 14 12 14C15.5899 14 18.5 17.134 18.5 21" fill="currentColor"/>
+      </svg>
+    </div>
+    <span>Face Detected</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-icon">
+      <svg class="icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C10.3431 2 9 3.34315 9 5V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V5C15 3.34315 13.6569 2 12 2Z" fill="currentColor"/>
+        <path d="M5 10V12C5 15.866 8.13401 19 12 19C15.866 19 19 15.866 19 12V10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M12 19V22M8 22H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <span>Audio Detected</span>
+  </div>
+</div>
         </div>
 
         <div class="quick-card card">
           <div class="quick-title">Quick Actions</div>
           <div class="quick-actions">
-              <button id="openToday" class="quick-btn primary">📖 Open Today's Log</button>
-              <button id="openCalm" class="quick-btn secondary">🧘 Calming Tools</button>
+              <button id="openToday" class="quick-btn primary"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 19.5C4 20.163 4.26339 20.7989 4.73223 21.2678C5.20107 21.7366 5.83696 22 6.5 22H20V2H6.5C5.83696 2 5.20107 2.26339 4.73223 2.73223C4.26339 3.20107 4 3.83696 4 4.5V19.5Z" fill="currentColor"/>
+        <path d="M8 6H16M8 10H16M8 14H12" stroke="black" stroke-width="1.5" stroke-linecap="round"/>
+      </svg> Open Today's Log</button>
+              <button id="openCalm" class="quick-btn secondary"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/>
+          </svg> Calming Tools</button>
             </div>
         </div>
       </div>
@@ -273,7 +311,10 @@ if (!isset($_SESSION['user_id'])) {
         <div style="font-weight:700;font-size:18px" id="modalDate">Date</div>
         <div style="display:flex;gap:8px;align-items:center">
           <span id="modalEditBadge" style="display:none;padding:6px 10px;border-radius:999px;background:#eef3ef;color:#2f3e32;font-weight:700;font-size:12px;border:1px solid #d6e2d9;">Editing</span>
-          <button id="openFullEditor" class="quick-btn secondary" style="padding:8px 10px">✏️ Open Full Editor</button>
+          <button id="openFullEditor" class="quick-btn secondary" style="padding:8px 10px"><svg class="icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" fill="gray"/>
+    <path d="M18.5 2.5C18.8978 2.1021 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.1021 21.5 2.5C21.8979 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8979 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" fill="black"/>
+  </svg> Open Full Editor</button>
           <button id="closeModal" style="border:none;background:#eee;border-radius:8px;padding:6px 8px;cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center">✕</button>
         </div>
       </div>

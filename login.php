@@ -22,6 +22,20 @@ if (isset($_SESSION['user_id'])) {
       --muted: #6b7280;
       --shadow: 0 8px 24px rgba(0,0,0,0.08);
     }
+
+    /* Custom Icons */
+    .icon-svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+    .brand-icon-svg {
+      width: 24px;
+      height: 24px;
+      fill: white;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -163,7 +177,11 @@ if (isset($_SESSION['user_id'])) {
   <div class="container">
     <div class="card">
       <div class="brand">
-        <div class="brand-icon">⭐</div>
+        <div class="brand-icon">
+          <svg class="brand-icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="white"/>
+        </svg>
+        </div>
       </div>
       <div class="brand-text" style="margin-bottom: 28px;">
         <div class="brand-title">Mood Tracker</div>

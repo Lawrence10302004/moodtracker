@@ -53,6 +53,30 @@ try {
     } else {
         header('Location: ../login.php?msg=registered');
     }
+} catch (PDOException $e) {
+    http_response_code(500);
+    $errorMsg = $e->getMessage();
+    error_log("Database error: " . $errorMsg);
+    
+    // Check for driver error
+    if (strpos($errorMsg, 'could not find driver') !== false) {
+        $driverNeeded = isPostgreSQL() ? 'pdo_pgsql' : 'pdo_mysql';
+        error_log("Missing PDO driver: {$driverNeeded}");
+        if (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== false) {
+            echo json_encode([
+                'error' => 'Database configuration error',
+                'message' => "The {$driverNeeded} PHP extension is not installed. Please configure your Railway environment to include PostgreSQL extensions."
+            ]);
+        } else {
+            header('Location: ../register.php?error=driver');
+        }
+    } else {
+        if (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== false) {
+            echo json_encode(['error' => 'Server error', 'message' => $errorMsg]);
+        } else {
+            header('Location: ../register.php?error=server');
+        }
+    }
 } catch (Exception $e) {
     http_response_code(500);
     error_log($e->getMessage());

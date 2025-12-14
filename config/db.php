@@ -116,9 +116,16 @@ function ensureDatabaseInitialized() {
         $tableExists = $stmt->fetch() !== false;
         
         if (!$tableExists) {
-            // Include and run init function
-            require_once __DIR__ . '/../api/init.php';
-            init_db();
+            // Include and run init function silently (without output)
+            // Define constant to prevent output when included
+            if (!defined('INIT_DB_INCLUDED')) {
+                require_once __DIR__ . '/../api/init.php';
+            }
+            // Call init_db() but don't output anything
+            $result = init_db();
+            if (!$result['success']) {
+                error_log("Database initialization failed: " . ($result['message'] ?? 'Unknown error'));
+            }
         }
         $initialized = true;
     } catch (Exception $e) {

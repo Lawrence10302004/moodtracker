@@ -4,11 +4,9 @@
  * Creates all necessary tables for both MySQL and PostgreSQL
  */
 
-require_once __DIR__ . '/../config/db.php';
-
-// Set content type only if not already set (for CLI usage)
-if (!headers_sent()) {
-    header('Content-Type: application/json');
+// Only require db.php if not already loaded (to avoid circular dependency)
+if (!function_exists('getPDO')) {
+    require_once __DIR__ . '/../config/db.php';
 }
 
 function init_db() {
@@ -187,6 +185,21 @@ function init_db() {
     }
 }
 
-$result = init_db();
-echo json_encode($result, JSON_PRETTY_PRINT);
+// Only output JSON if this file is accessed directly (not included)
+// Check if this is a direct request vs being included
+$isDirectAccess = !defined('INIT_DB_INCLUDED') && 
+                   (basename($_SERVER['PHP_SELF']) === 'init.php' || 
+                    (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/init.php') !== false));
+
+if ($isDirectAccess) {
+    // Set content type for direct access
+    if (!headers_sent()) {
+        header('Content-Type: application/json');
+    }
+    $result = init_db();
+    echo json_encode($result, JSON_PRETTY_PRINT);
+} else {
+    // When included, define a constant to prevent output
+    define('INIT_DB_INCLUDED', true);
+}
 

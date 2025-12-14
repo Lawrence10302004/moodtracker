@@ -99,6 +99,40 @@ function isPostgreSQL(): bool {
     return $use_postgres;
 }
 
+// Helper functions for database-agnostic SQL
+function sqlCurrentDate(): string {
+    return isPostgreSQL() ? 'CURRENT_DATE' : 'CURDATE()';
+}
+
+function sqlCurrentTime(): string {
+    return isPostgreSQL() ? 'CURRENT_TIME' : 'CURTIME()';
+}
+
+function sqlCurrentTimestamp(): string {
+    return isPostgreSQL() ? 'CURRENT_TIMESTAMP' : 'NOW()';
+}
+
+function sqlYear($column): string {
+    return isPostgreSQL() ? "EXTRACT(YEAR FROM {$column})" : "YEAR({$column})";
+}
+
+function sqlMonth($column): string {
+    return isPostgreSQL() ? "EXTRACT(MONTH FROM {$column})" : "MONTH({$column})";
+}
+
+function sqlDate($column): string {
+    // Both MySQL and PostgreSQL support DATE() function
+    return "DATE({$column})";
+}
+
+function sqlGroupConcat($column, $separator = ','): string {
+    if (isPostgreSQL()) {
+        return "STRING_AGG({$column}, '{$separator}')";
+    } else {
+        return "GROUP_CONCAT({$column} SEPARATOR '{$separator}')";
+    }
+}
+
 // Auto-initialize database on first connection (only if tables don't exist)
 function ensureDatabaseInitialized() {
     static $initialized = false;

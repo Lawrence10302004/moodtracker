@@ -14,7 +14,8 @@ try {
     }
 
     $pdo = getPDO();
-    $stmt = $pdo->prepare('SELECT * FROM mood_logs WHERE date = CURDATE() AND user_id = :uid ORDER BY created_at DESC LIMIT 1');
+    $currentDate = sqlCurrentDate();
+    $stmt = $pdo->prepare("SELECT * FROM mood_logs WHERE date = {$currentDate} AND user_id = :uid ORDER BY created_at DESC LIMIT 1");
     $stmt->execute([':uid' => $userId]);
     $row = $stmt->fetch();
     if (!$row) {

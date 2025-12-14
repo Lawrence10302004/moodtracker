@@ -44,7 +44,8 @@ try {
     }
 
     $hash = password_hash($password, PASSWORD_DEFAULT);
-    $ins = $pdo->prepare('INSERT INTO users (username, password_hash, created_at) VALUES (:username, :ph, NOW())');
+    $currentTimestamp = sqlCurrentTimestamp();
+    $ins = $pdo->prepare("INSERT INTO users (username, password_hash, created_at) VALUES (:username, :ph, {$currentTimestamp})");
     $ins->execute([':username' => $username, ':ph' => $hash]);
     $userId = (int)$pdo->lastInsertId();
 

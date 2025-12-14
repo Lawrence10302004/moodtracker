@@ -30,12 +30,14 @@ try {
     
     if ($existing) {
         // Update existing
-        $stmt = $pdo->prepare('UPDATE diary_entries SET content = :content, created_at = NOW() WHERE id = :id');
+        $currentTimestamp = sqlCurrentTimestamp();
+        $stmt = $pdo->prepare("UPDATE diary_entries SET content = :content, created_at = {$currentTimestamp} WHERE id = :id");
         $stmt->execute([':content' => $content, ':id' => $existing['id']]);
         echo json_encode(['ok' => true, 'id' => $existing['id'], 'action' => 'updated']);
     } else {
         // Insert new
-        $stmt = $pdo->prepare('INSERT INTO diary_entries (user_id, date, time, content) VALUES (:uid, :date, CURTIME(), :content)');
+        $currentTime = sqlCurrentTime();
+        $stmt = $pdo->prepare("INSERT INTO diary_entries (user_id, date, time, content) VALUES (:uid, :date, {$currentTime}, :content)");
         $stmt->execute([':uid' => $user_id, ':date' => $date, ':content' => $content]);
         echo json_encode(['ok' => true, 'id' => $pdo->lastInsertId(), 'action' => 'created']);
     }

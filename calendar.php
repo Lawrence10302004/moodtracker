@@ -300,6 +300,8 @@ if (!isset($_SESSION['user_id'])) {
           </svg> Calming Tools</button>
             </div>
         </div>
+
+
       </div>
     </div>
   </main>
@@ -407,9 +409,12 @@ if (!isset($_SESSION['user_id'])) {
         moodMap = {};
         if (data.moods && Array.isArray(data.moods)) {
           data.moods.forEach(mood => {
+            // Prefer selected_mood (from meta) if present, then tags, then score
             let moodInfo = getEmojiFromScore(mood.combined_score || 50);
-            // If tags exist, use the first tag to choose emoji/style
-            if (mood.tags) {
+            if (mood.selected_mood) {
+              const selEmoji = getEmojiFromTag(mood.selected_mood);
+              if (selEmoji) moodInfo = selEmoji;
+            } else if (mood.tags) {
               const tagArr = mood.tags.split(',').map(t => t.trim()).filter(Boolean);
               if (tagArr.length > 0) {
                 const tagEmoji = getEmojiFromTag(tagArr[0]);
@@ -508,39 +513,7 @@ if (!isset($_SESSION['user_id'])) {
     });
 
     // Update today's mood in sidebar
-    async function updateTodayMood() {
-      try {
-        const res = await fetch('api/get_today_mood.php');
-        if (res.status === 401) return;
-        const data = await res.json();
-        if (data.found && data.data) {
-          const score = data.data.combined_score;
-          let emoji = '😊';
-          let text = 'Feeling good today';
-          
-          if (score >= 70) {
-            emoji = '😄';
-            text = 'Feeling great!';
-          } else if (score >= 50) {
-            emoji = '🙂';
-            text = 'Feeling okay';
-          } else if (score >= 30) {
-            emoji = '😐';
-            text = 'Feeling neutral';
-          } else {
-            emoji = '😢';
-            text = 'Feeling low';
-          }
-          
-          document.getElementById('todayMoodEmoji').textContent = emoji;
-          document.getElementById('todayMoodText').textContent = text;
-        }
-      } catch (e) {
-        console.error('Error loading today mood:', e);
-      }
-    }
     
-    updateTodayMood();
     loadMonthMoods();
     
     // Modal helpers
@@ -563,6 +536,17 @@ if (!isset($_SESSION['user_id'])) {
     let currentMoodTag = null;
     let lastDiaryId = null;
     let isSaving = false;
+
+    function normalizeMoodName(name) {
+      if (!name) return null;
+      const map = {
+        happy: 'Happy', joyful: 'Joyful', calm: 'Calm', peaceful: 'Peaceful', neutral: 'Neutral',
+        sad: 'Sad', angry: 'Angry', stressed: 'Stressed', anxious: 'Anxious', tired: 'Tired',
+        fearful: 'Anxious', disgusted: 'Angry', surprised: 'Confused', high_energy: 'Joyful'
+      };
+      const k = String(name).toLowerCase();
+      return map[k] || (k.charAt(0).toUpperCase() + k.slice(1));
+    }
 
     function showToast(message) {
       if (!toastContainer) return;
@@ -698,15 +682,27 @@ if (!isset($_SESSION['user_id'])) {
         const moodRes = await fetch(`api/get_daily_log.php?date=${date}`);
         if (moodRes.ok) {
           const moodData = await moodRes.json();
-          if (moodData.tags && moodData.tags.length > 0) {
-            const firstTag = moodData.tags[0];
-            currentMoodTag = (typeof firstTag === 'object' && firstTag.tag_name) ? firstTag.tag_name : firstTag;
+          // Prefer selected_mood in mood.meta, else first tag
+          try {
+            let mm = null;
+            if (moodData.mood && moodData.mood.meta) {
+              try { const parsed = JSON.parse(moodData.mood.meta); if (parsed && parsed.selected_mood) mm = parsed.selected_mood; } catch(e) {}
+            }
+            if (mm) {
+              currentMoodTag = normalizeMoodName(mm) || mm;
+            } else if (moodData.tags && moodData.tags.length > 0) {
+              const firstTag = moodData.tags[0];
+              currentMoodTag = (typeof firstTag === 'object' && firstTag.tag_name) ? firstTag.tag_name : firstTag;
+              currentMoodTag = normalizeMoodName(currentMoodTag) || currentMoodTag;
+            } else {
+              currentMoodTag = null;
+            }
             const moodEmoji = {
               'Happy': '😊', 'Calm': '🙂', 'Sad': '😢', 
               'Stressed': '😰', 'Neutral': '😐', 'Tired': '😴'
             };
-            document.getElementById('modalMoodDisplay').textContent = moodEmoji[currentMoodTag] || '😊';
-          } else {
+            document.getElementById('modalMoodDisplay').textContent = currentMoodTag ? (moodEmoji[currentMoodTag] || '😊') : '—';
+          } catch(e) {
             currentMoodTag = null;
             document.getElementById('modalMoodDisplay').textContent = '—';
           }
@@ -913,6 +909,7 @@ if (!isset($_SESSION['user_id'])) {
               const moodData = await moodRes.json();
               if (moodData.tags && moodData.tags.length > 0) {
                 savedMoodTag = moodData.tags[0]; // tags[0] is already the tag_name string
+                savedMoodTag = normalizeMoodName(savedMoodTag) || savedMoodTag;
                 currentMoodTag = savedMoodTag;
               } else if (currentMoodTag) {
                 // Keep the current selection if API doesn't return tags yet
@@ -935,6 +932,43 @@ if (!isset($_SESSION['user_id'])) {
           const moodDisplayEl = document.getElementById('modalMoodDisplay');
           if (moodDisplayEl) {
             moodDisplayEl.textContent = savedMoodTag ? (moodEmoji[savedMoodTag] || '😊') : '—';
+          }
+
+          // Persist a canonical mood record so other views (daily-log, home) see the update
+          try {
+            const moodPayload = {
+              date: date,
+              face_emotion: savedMoodTag || null,
+              face_confidence: 0,
+              audio_emotion: savedMoodTag || null,
+              audio_score: 0,
+              combined_score: 75,
+              meta: {
+                diary_id: lastDiaryId || r.id || '',
+                selected_mood: savedMoodTag || null,
+                saved_at: new Date().toISOString()
+              }
+            };
+            const saveMoodRes = await fetch('api/save_mood.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(moodPayload)
+            });
+            const saveMoodData = await saveMoodRes.json();
+            if (!saveMoodData.ok) console.warn('save_mood warning:', saveMoodData.error);
+          } catch (e) {
+            console.error('Error saving mood record:', e);
+          }
+
+          // Notify other open views so they can refresh their data
+          try {
+            const latestRes = await fetch(`api/get_daily_log.php?date=${date}`);
+            const latestData = latestRes.ok ? await latestRes.json() : {};
+            window.dispatchEvent(new CustomEvent('dayUpdated', { detail: { date: date, data: latestData } }));
+            // also set localStorage to notify other tabs
+            try { localStorage.setItem('dayUpdated', JSON.stringify({ date: date, ts: Date.now() })); } catch (e) { /* ignore */ }
+          } catch (e) {
+            console.error('Error dispatching dayUpdated event:', e);
           }
           
           // Also refresh the calendar to show updated mood emoji
@@ -998,6 +1032,41 @@ if (!isset($_SESSION['user_id'])) {
     });
     document.getElementById('openCalm')?.addEventListener('click', () => {
       window.location.href = 'calming-tools.php';
+    });
+
+    // Respond to cross-tab day updates
+    window.addEventListener('storage', async (ev) => {
+      try {
+        if (ev.key !== 'dayUpdated') return;
+        const payload = ev.newValue ? JSON.parse(ev.newValue) : null;
+        if (!payload || !payload.date) return;
+        const d = payload.date;
+        loadMonthMoods();
+        if (currentModalDate && currentModalDate === d) {
+          try {
+            const res = await fetch(`api/get_daily_log.php?date=${currentModalDate}`);
+            const data = res.ok ? await res.json() : null;
+            if (data) await showDiaryModal(currentModalDate, data);
+          } catch (e) { console.error('Error refreshing modal after storage dayUpdated', e); }
+        }
+      } catch (e) { console.error('storage handler error', e); }
+    });
+
+    // Respond to same-tab updates via CustomEvent('dayUpdated')
+    window.addEventListener('dayUpdated', async (ev) => {
+      try {
+        const d = ev.detail && ev.detail.date ? ev.detail.date : null;
+        if (!d) return;
+        console.log('calendar: received dayUpdated for', d);
+        loadMonthMoods();
+        if (currentModalDate && currentModalDate === d) {
+          try {
+            const res = await fetch(`api/get_daily_log.php?date=${currentModalDate}`);
+            const data = res.ok ? await res.json() : null;
+            if (data) await showDiaryModal(currentModalDate, data);
+          } catch (e) { console.error('Error refreshing modal after dayUpdated', e); }
+        }
+      } catch (e) { console.error('dayUpdated handler error (calendar)', e); }
     });
   </script>
 

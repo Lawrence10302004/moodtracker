@@ -481,6 +481,18 @@ if (!isset($_SESSION['user_id'])) {
       'Loved': { emoji: '🥰', bg: '#FF1493' }
     };
 
+    // Normalize incoming emotion labels to the UI keys
+    function normalizeMoodName(name) {
+      if (!name) return null;
+      const map = {
+        happy: 'Happy', joyful: 'Joyful', calm: 'Calm', peaceful: 'Peaceful', neutral: 'Neutral',
+        sad: 'Sad', angry: 'Angry', stressed: 'Stressed', anxious: 'Anxious', tired: 'Tired',
+        fearful: 'Anxious', disgusted: 'Angry', surprised: 'Confused', high_energy: 'Joyful'
+      };
+      const k = String(name).toLowerCase();
+      return map[k] || (k.charAt(0).toUpperCase() + k.slice(1));
+    }
+
     // Camera & Mic state
     let deviceState = {
       camera: false,
@@ -572,17 +584,20 @@ if (!isset($_SESSION['user_id'])) {
         const data = await res.json();
         if (data.found && data.mood) {
           // Update detected moods
-          const faceEmotion = data.mood.face_emotion || 'Unknown';
-          const faceConf = data.mood.face_confidence || 0;
-          document.getElementById('faceEmotion').textContent = faceEmotion;
-          document.getElementById('faceConfidence').textContent = `${faceConf}%`;
+            let faceEmotion = data.mood.face_emotion || 'Unknown';
+            const faceConf = data.mood.face_confidence || 0;
+            // normalize before using in UI
+            faceEmotion = normalizeMoodName(faceEmotion) || faceEmotion;
+            document.getElementById('faceEmotion').textContent = faceEmotion;
+            document.getElementById('faceConfidence').textContent = `${faceConf}%`;
           
-          const emotionData = emotionMap[faceEmotion] || { emoji: '😶', bg: '#f4f4f4' };
+            const emotionData = emotionMap[faceEmotion] || { emoji: '😶', bg: '#f4f4f4' };
           document.getElementById('faceEmoji').textContent = emotionData.emoji;
           document.getElementById('faceEmoji').style.background = emotionData.bg;
 
-          const audioEmotion = data.mood.audio_emotion || 'Not detected';
+          let audioEmotion = data.mood.audio_emotion || 'Not detected';
           const audioScore = data.mood.audio_score || '—';
+          audioEmotion = normalizeMoodName(audioEmotion) || audioEmotion;
           document.getElementById('audioEmotion').textContent = audioEmotion;
           document.getElementById('audioScore').textContent = typeof audioScore === 'number' ? `${audioScore}%` : audioScore;
           
@@ -615,12 +630,50 @@ if (!isset($_SESSION['user_id'])) {
               if (chip) chip.classList.add('active');
             });
           }
+          // Apply selected mood: prefer mood.meta.selected_mood, else first tag, else mood.face_emotion
+          try {
+            let moodToSet = null;
+            if (data.mood && data.mood.meta) {
+              try { const m = JSON.parse(data.mood.meta); if (m && m.selected_mood) moodToSet = m.selected_mood; } catch(e) { /* ignore */ }
+            }
+            if (!moodToSet && data.tags && data.tags.length > 0) moodToSet = data.tags[0];
+            if (!moodToSet && data.mood && data.mood.face_emotion) moodToSet = data.mood.face_emotion;
+            if (moodToSet) {
+              moodToSet = normalizeMoodName(moodToSet) || moodToSet;
+              handleMoodSelection(moodToSet);
+            }
+          } catch(e) { console.error('Error applying mood selection:', e); }
         }
         updateAISummary();
       } catch (e) {
         console.error('Error loading daily log:', e);
       }
     }
+
+    // Listen for calendar/modal saves and refresh today's data when the date matches
+    window.addEventListener('dayUpdated', (ev) => {
+      try {
+        const d = ev.detail && ev.detail.date ? ev.detail.date : null;
+        if (!d) return;
+        if (d === currentDate) {
+          loadTodayData();
+          console.log('daily-log: refreshed due to dayUpdated event');
+        }
+      } catch (err) { console.error('dayUpdated handler error', err); }
+    });
+
+    // Also listen to storage events (cross-tab) for dayUpdated
+    window.addEventListener('storage', (ev) => {
+      try {
+        if (ev.key !== 'dayUpdated') return;
+        const payload = ev.newValue ? JSON.parse(ev.newValue) : null;
+        if (!payload || !payload.date) return;
+        if (payload.date === currentDate) {
+          loadTodayData();
+          console.log('daily-log: refreshed due to storage dayUpdated');
+        }
+      } catch (err) { console.error('storage handler error', err); }
+    });
 
     // Auto-generate AI summary
     function updateAISummary() {
@@ -933,6 +986,11 @@ if (!isset($_SESSION['user_id'])) {
         }, 2000);
 
         await loadTodayData();
+        // notify other views that this date was updated
+        try {
+          window.dispatchEvent(new CustomEvent('dayUpdated', { detail: { date: today } }));
+          try { localStorage.setItem('dayUpdated', JSON.stringify({ date: today, ts: Date.now() })); } catch(e) {}
+        } catch(e) { console.error('Error dispatching dayUpdated after saveEntry', e); }
       } catch (e) {
         console.error('Save error:', e);
         saveBtn.disabled = false;
@@ -1101,6 +1159,10 @@ if (!isset($_SESSION['user_id'])) {
 
     let lastFace = { name: null, score: 0 };
     let lastAudio = { name: null, score: 0 };
+    // track last detected mood to avoid frequent saves
+    let lastDetectedMood = null;
+    let lastSavedDetectedMood = null;
+    let lastDetectionSavedAt = 0; // timestamp ms
 
     function computeAndShowScore(faceName, faceConf, audioName, audioScoreVal){
       if (faceName) lastFace = { name: faceName.toLowerCase(), score: faceConf };
@@ -1122,6 +1184,68 @@ if (!isset($_SESSION['user_id'])) {
         else label = 'Challenging moment';
         document.getElementById('combinedLabel').textContent = label;
         updateAISummary();
+        // derive a user-friendly mood name from detection and normalize to available UI options
+        const faceMapToUi = {
+          happy: 'Happy', joyful: 'Joyful', calm: 'Calm', neutral: 'Neutral', sad: 'Sad', angry: 'Angry', fearful: 'Anxious', disgusted: 'Angry', surprised: 'Confused'
+        };
+        const audioMapToUi = { calm: 'Calm', neutral: 'Calm', high_energy: 'Joyful' };
+        let moodFromFace = lastFace.name ? (faceMapToUi[lastFace.name.toLowerCase()] || null) : null;
+        let moodFromAudio = lastAudio.name ? (audioMapToUi[lastAudio.name.toLowerCase()] || null) : null;
+        let moodToSet = moodFromFace || moodFromAudio || (combined >= 80 ? 'Happy' : (combined >= 60 ? 'Calm' : (combined >= 40 ? 'Neutral' : 'Sad')));
+
+        // Apply mood selection in UI
+        try {
+          if (moodToSet && moodToSet !== lastDetectedMood) {
+            lastDetectedMood = moodToSet;
+            console.log('Auto-detected mood applied:', moodToSet);
+            handleMoodSelection(moodToSet);
+          }
+        } catch(e) { console.error('Error applying detected mood to UI', e); }
+
+        // Persist mood if it changed or it's been a while (throttle saves)
+        try {
+          const now = Date.now();
+          if (moodToSet && (moodToSet !== lastSavedDetectedMood || (now - lastDetectionSavedAt) > 30000)) {
+            // prepare payload
+            const payload = {
+              date: currentDate,
+              face_emotion: lastFace.name || moodToSet,
+              face_confidence: Math.round((lastFace.score || 0) * 100),
+              audio_emotion: lastAudio.name || moodToSet,
+              audio_score: lastAudio.score || 0,
+              combined_score: combined,
+              meta: {
+                selected_mood: moodToSet,
+                camera_enabled: deviceState.camera,
+                mic_enabled: deviceState.mic,
+                diary_id: lastDiaryId || null,
+                saved_at: new Date().toISOString()
+              }
+            };
+            // send to save_mood.php
+            (async () => {
+              try {
+                const res = await fetch('api/save_mood.php', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+                const j = await res.json();
+                if (j.ok) {
+                  lastDetectionSavedAt = Date.now();
+                  lastSavedDetectedMood = moodToSet;
+                  // notify other views
+                  try {
+                    const latest = await fetch(`api/get_daily_log.php?date=${currentDate}`);
+                    const data = latest.ok ? await latest.json() : {};
+                    window.dispatchEvent(new CustomEvent('dayUpdated', { detail: { date: currentDate, data } }));
+                    try { localStorage.setItem('dayUpdated', JSON.stringify({ date: currentDate, ts: Date.now() })); } catch(e) {}
+                  } catch(e) { console.error('Error notifying after detection save', e); }
+                }
+              } catch(e) { console.error('Error auto-saving detected mood:', e); }
+            })();
+          }
+        } catch(e) { console.error('Error during auto-save logic', e); }
       }
     }
 

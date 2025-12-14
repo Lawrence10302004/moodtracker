@@ -676,7 +676,7 @@ if (!isset($_SESSION['user_id'])) {
       audio_emotion: audio.name,
       audio_score: audio.score,
       combined_score: combined,
-      meta: { userAgent: navigator.userAgent }
+      meta: { userAgent: navigator.userAgent, selected_mood: face.name || audio.name || null }
     };
     try {
       const res = await fetch('api/save_mood.php', {
@@ -688,6 +688,12 @@ if (!isset($_SESSION['user_id'])) {
       if (json.ok) {
         setStatus('saved');
         loadTodaySummary();
+        // notify other views that today's mood changed
+        try {
+          const today = new Date().toISOString().slice(0,10);
+          window.dispatchEvent(new CustomEvent('dayUpdated', { detail: { date: today } }));
+          try { localStorage.setItem('dayUpdated', JSON.stringify({ date: today, ts: Date.now() })); } catch(e) {}
+        } catch(e) { console.error('Error dispatching dayUpdated from home', e); }
       } else {
         console.error(json);
         setStatus('save failed');
@@ -750,12 +756,18 @@ if (!isset($_SESSION['user_id'])) {
     const bigScoreEl = document.querySelector('.score-number');
     if (bigScoreEl && data.combined_score != null) bigScoreEl.textContent = data.combined_score;
 
-    // Update today's summary small card
+    // Normalize and update today's summary small card
     if (todaySummary) {
+      const normalizeMoodName = (name) => {
+        if (!name) return '—';
+        const map = { happy:'Happy', joyful:'Joyful', calm:'Calm', peaceful:'Peaceful', neutral:'Neutral', sad:'Sad', angry:'Angry', stressed:'Stressed', anxious:'Anxious', tired:'Tired', fearful:'Anxious', disgusted:'Angry', surprised:'Confused', high_energy:'Joyful' };
+        const k = String(name).toLowerCase();
+        return map[k] || (k.charAt(0).toUpperCase() + k.slice(1));
+      };
       todaySummary.innerHTML = `
         <div><strong>${new Date().toLocaleDateString()}</strong></div>
-        <div>Face: ${data.face_emotion ?? '—'} (${data.face_confidence ?? '—'})</div>
-        <div>Audio: ${data.audio_emotion ?? '—'} (${data.audio_score ?? '—'})</div>
+        <div>Face: ${normalizeMoodName(data.face_emotion)} (${data.face_confidence ?? '—'})</div>
+        <div>Audio: ${normalizeMoodName(data.audio_emotion)} (${data.audio_score ?? '—'})</div>
         <div>Combined: ${data.combined_score ?? '—'}</div>
       `;
     }
@@ -816,6 +828,34 @@ if (!isset($_SESSION['user_id'])) {
       else aff.textContent = `"Take it slow — better days are coming."`;
     }
   }
+
+  // React to updates from other views (modal, daily-log)
+  window.addEventListener('dayUpdated', (ev) => {
+    try {
+      const d = ev.detail && ev.detail.date ? ev.detail.date : null;
+      const today = new Date().toISOString().slice(0,10);
+      if (!d) return;
+      if (d === today) {
+        loadTodaySummary();
+        loadFullInsights();
+        console.log('home: refreshed due to dayUpdated event');
+      }
+    } catch(e) { console.error('dayUpdated handler error (home)', e); }
+  });
+
+  // Cross-tab storage listener
+  window.addEventListener('storage', (ev) => {
+    try {
+      if (ev.key !== 'dayUpdated') return;
+      const payload = ev.newValue ? JSON.parse(ev.newValue) : null;
+      const today = new Date().toISOString().slice(0,10);
+      if (payload && payload.date === today) {
+        loadTodaySummary();
+        loadFullInsights();
+        console.log('home: refreshed due to storage dayUpdated');
+      }
+    } catch(e) { console.error('storage handler error (home)', e); }
+  });
 
 
   // Set dynamic greeting based on time of day

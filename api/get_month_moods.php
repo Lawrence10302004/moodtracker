@@ -19,8 +19,8 @@ try {
     
     // Get all moods for the month with related data
     // Select most recent mood_logs row per date to avoid stale grouped values
-    $yearFunc = sqlYear('date');
-    $monthFunc = sqlMonth('date');
+    $yearFunc = sqlYear('m.date');
+    $monthFunc = sqlMonth('m.date');
     $groupConcat = sqlGroupConcat('DISTINCT t.tag_name');
     
     // Build GROUP BY clause based on database type
@@ -30,6 +30,10 @@ try {
         $groupBy = "GROUP BY m.date";
     }
     
+    // For the subquery, use table alias for date column
+    $subqueryYearFunc = sqlYear('ml.date');
+    $subqueryMonthFunc = sqlMonth('ml.date');
+    
     $sql = "SELECT 
         m.id, m.date, m.combined_score, m.face_emotion, m.audio_emotion, m.meta,
         COUNT(DISTINCT d.id) as has_diary,
@@ -37,10 +41,10 @@ try {
         {$groupConcat} as tags
         FROM mood_logs m
         JOIN (
-            SELECT date, MAX(created_at) AS max_created
-            FROM mood_logs
-            WHERE user_id = :uid AND {$yearFunc} = :year AND {$monthFunc} = :month
-            GROUP BY date
+            SELECT ml.date, MAX(ml.created_at) AS max_created
+            FROM mood_logs ml
+            WHERE ml.user_id = :uid AND {$subqueryYearFunc} = :year AND {$subqueryMonthFunc} = :month
+            GROUP BY ml.date
         ) latest ON m.date = latest.date AND m.created_at = latest.max_created AND m.user_id = :uid
         LEFT JOIN diary_entries d ON m.user_id = d.user_id AND m.date = d.date
         LEFT JOIN media_uploads mu ON m.user_id = mu.user_id AND m.date = mu.date

@@ -105,12 +105,7 @@ try {
     if ($existing) {
         // update existing row
         $currentTimestamp = sqlCurrentTimestamp();
-        // For PostgreSQL JSONB, cast the parameter; for MySQL, use as-is
-        if (isPostgreSQL() && $mergedMeta !== null) {
-            $sql = "UPDATE mood_logs SET time = :time, face_emotion = :face_emotion, face_confidence = :face_confidence, audio_emotion = :audio_emotion, audio_score = :audio_score, combined_score = :combined_score, diary_id = :diary_id, meta = CAST(:meta AS JSONB), created_at = {$currentTimestamp} WHERE id = :id";
-        } else {
-            $sql = "UPDATE mood_logs SET time = :time, face_emotion = :face_emotion, face_confidence = :face_confidence, audio_emotion = :audio_emotion, audio_score = :audio_score, combined_score = :combined_score, diary_id = :diary_id, meta = :meta, created_at = {$currentTimestamp} WHERE id = :id";
-        }
+        $sql = "UPDATE mood_logs SET time = :time, face_emotion = :face_emotion, face_confidence = :face_confidence, audio_emotion = :audio_emotion, audio_score = :audio_score, combined_score = :combined_score, diary_id = :diary_id, meta = :meta, created_at = {$currentTimestamp} WHERE id = :id";
         $stmt = $pdo->prepare($sql);
         $params = [
             ':time' => $time,
@@ -130,15 +125,7 @@ try {
         $cols = 'user_id, date, time, face_emotion, face_confidence, audio_emotion, audio_score, combined_score';
         $vals = ':user_id, :date, :time, :face_emotion, :face_confidence, :audio_emotion, :audio_score, :combined_score';
         if ($diary_id !== null) { $cols .= ', diary_id'; $vals .= ', :diary_id'; }
-        if ($mergedMeta !== null) { 
-            $cols .= ', meta'; 
-            // For PostgreSQL JSONB, cast the parameter; for MySQL, use as-is
-            if (isPostgreSQL()) {
-                $vals .= ', CAST(:meta AS JSONB)';
-            } else {
-                $vals .= ', :meta';
-            }
-        }
+        if ($mergedMeta !== null) { $cols .= ', meta'; $vals .= ', :meta'; }
 
         $sql = "INSERT INTO mood_logs ({$cols}) VALUES ({$vals})";
         $stmt = $pdo->prepare($sql);

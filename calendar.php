@@ -409,21 +409,31 @@ if (!isset($_SESSION['user_id'])) {
         moodMap = {};
         if (data.moods && Array.isArray(data.moods)) {
           data.moods.forEach(mood => {
+            // Ensure date is in YYYY-MM-DD format
+            let dateKey = mood.date;
+            if (dateKey && typeof dateKey === 'string') {
+              // Normalize date format (remove time if present)
+              dateKey = dateKey.split(' ')[0];
+            }
+            if (!dateKey) return; // Skip if no date
+            
             // Prefer selected_mood (from meta) if present, then tags, then score
             let moodInfo = getEmojiFromScore(mood.combined_score || 50);
             if (mood.selected_mood) {
               const selEmoji = getEmojiFromTag(mood.selected_mood);
               if (selEmoji) moodInfo = selEmoji;
             } else if (mood.tags) {
-              const tagArr = mood.tags.split(',').map(t => t.trim()).filter(Boolean);
+              const tagArr = typeof mood.tags === 'string' 
+                ? mood.tags.split(',').map(t => t.trim()).filter(Boolean)
+                : Array.isArray(mood.tags) ? mood.tags : [];
               if (tagArr.length > 0) {
                 const tagEmoji = getEmojiFromTag(tagArr[0]);
                 if (tagEmoji) moodInfo = tagEmoji;
               }
             }
-            moodMap[mood.date] = {
+            moodMap[dateKey] = {
               ...moodInfo,
-              diary: mood.has_diary > 0,
+              diary: (mood.has_diary && parseInt(mood.has_diary) > 0) || false,
               face: mood.face_emotion ? true : false,
               audio: mood.audio_emotion ? true : false,
               score: mood.combined_score
@@ -462,9 +472,12 @@ if (!isset($_SESSION['user_id'])) {
         const info = moodMap[key];
         cell.className = 'day' + (info ? ` ${info.style}` : '');
         cell.dataset.date = key;
+        
+        // Always show mood indicator if info exists, even if emoji is missing
+        const hasMoodData = info && (info.emoji || info.score !== undefined);
         cell.innerHTML = `
           <div>${d}</div>
-          ${info ? `<div class="mood"><strong>${info.emoji}</strong></div>
+          ${hasMoodData ? `<div class="mood"><strong>${info.emoji || '😊'}</strong></div>
             <div class="pill">
               ${info.diary ? '<span class="legend-dot" style="background:#739d73"></span>' : ''}
               ${info.face ? '<span class="legend-dot" style="background:#f2ac57"></span>' : ''}
@@ -1000,7 +1013,10 @@ if (!isset($_SESSION['user_id'])) {
           // Re-render media list without delete buttons
           renderMediaList(currentMediaData, false);
           // refresh month moods (in case diary indicator changed)
-          loadMonthMoods();
+          // Use setTimeout to ensure API has processed the save
+          setTimeout(() => {
+            loadMonthMoods();
+          }, 300);
           showToast('Saved changes');
         } catch (err) {
           alert('Error saving diary: ' + err.message);

@@ -47,7 +47,7 @@ try {
     $currentTimestamp = sqlCurrentTimestamp();
     $ins = $pdo->prepare("INSERT INTO users (username, password_hash, created_at) VALUES (:username, :ph, {$currentTimestamp})");
     $ins->execute([':username' => $username, ':ph' => $hash]);
-    $userId = (int)$pdo->lastInsertId();
+    $userId = getLastInsertId($pdo, 'users');
 
     if (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') !== false) {
         echo json_encode(['ok' => true, 'id' => $userId, 'message' => 'Registration successful. Please log in.']);

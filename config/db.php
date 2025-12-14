@@ -133,6 +133,19 @@ function sqlGroupConcat($column, $separator = ','): string {
     }
 }
 
+// Helper function to get last insert ID (works for both MySQL and PostgreSQL)
+function getLastInsertId(PDO $pdo, string $table = ''): int {
+    if (isPostgreSQL() && !empty($table)) {
+        // For PostgreSQL, we need the sequence name: {table}_{column}_seq
+        // Since we use SERIAL, the sequence is automatically {table}_id_seq
+        $sequenceName = $table . '_id_seq';
+        return (int)$pdo->lastInsertId($sequenceName);
+    } else {
+        // For MySQL, lastInsertId() works without parameters
+        return (int)$pdo->lastInsertId();
+    }
+}
+
 // Auto-initialize database on first connection (only if tables don't exist)
 function ensureDatabaseInitialized() {
     static $initialized = false;

@@ -79,7 +79,7 @@ try {
     
     echo json_encode([
         'ok' => true,
-        'id' => $pdo->lastInsertId(),
+        'id' => getLastInsertId($pdo, 'media_uploads'),
         'path' => $relPath,
         'type' => $mediaType,
         'filename' => $filename

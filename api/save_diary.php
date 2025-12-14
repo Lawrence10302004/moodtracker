@@ -39,7 +39,7 @@ try {
         $currentTime = sqlCurrentTime();
         $stmt = $pdo->prepare("INSERT INTO diary_entries (user_id, date, time, content) VALUES (:uid, :date, {$currentTime}, :content)");
         $stmt->execute([':uid' => $user_id, ':date' => $date, ':content' => $content]);
-        echo json_encode(['ok' => true, 'id' => $pdo->lastInsertId(), 'action' => 'created']);
+        echo json_encode(['ok' => true, 'id' => getLastInsertId($pdo, 'diary_entries'), 'action' => 'created']);
     }
 } catch (Exception $e) {
     http_response_code(500);
